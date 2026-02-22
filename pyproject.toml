@@ -3,7 +3,12 @@ name = "deep-financial-research"
 version = "0.1.0"
 dependencies = [
     "edgartools",
-    "pydantic-settings"
+    "pydantic-settings",
+    "langchain",
+    "langchain-openai",        
+    "langchain-community",     
+    "chromadb",                
+    "flashrank",               
 ]
 
 [build-system]
