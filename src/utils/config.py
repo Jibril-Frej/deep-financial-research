@@ -2,15 +2,15 @@
 
 from pathlib import Path
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """Configuration settings for the application."""
 
-    EDGAR_IDENTITY: str = "default@example.com"
-    TAVILY_API_KEY: str = ""
-    OPENAI_API_KEY: str = ""
+    EDGAR_IDENTITY: SecretStr
+    OPENAI_API_KEY: SecretStr
 
     DATA_DIR: Path = Path("data")
     RAW_DATA_DIR: Path = DATA_DIR / "raw"
@@ -24,4 +24,4 @@ class Settings(BaseSettings):
     )
 
 
-settings = Settings()
+settings = Settings()  # type: ignore[call-arg]

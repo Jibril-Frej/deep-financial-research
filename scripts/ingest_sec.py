@@ -9,7 +9,7 @@ from utils.config import settings
 from utils.logging import logger
 
 # Set the identity for EDGAR API access
-set_identity(settings.EDGAR_IDENTITY)
+set_identity(str(settings.EDGAR_IDENTITY))
 
 
 def download_financial_sections(ticker, folder=settings.RAW_DATA_DIR):
@@ -19,13 +19,13 @@ def download_financial_sections(ticker, folder=settings.RAW_DATA_DIR):
     """
     os.makedirs(folder, exist_ok=True)
 
-    logger.info(f"🔍 Fetching 10-K for {ticker} from EDGAR...")
+    logger.info("🔍 Fetching 10-K for %s from EDGAR...", ticker)
 
     company = Company(ticker)
     filings = company.get_filings(form="10-K")
 
     if not filings:
-        print(f"❌ No 10-K found for {ticker}")
+        logger.warning("❌ No 10-K found for %s", ticker)
         return
 
     latest_filing = filings.latest()
@@ -46,9 +46,9 @@ def download_financial_sections(ticker, folder=settings.RAW_DATA_DIR):
 
             # Use Pathlib's easy write method
             file_path.write_text(content, encoding="utf-8")
-            logger.info(f" ✅ Saved {filename}")
+            logger.info(" ✅ Saved %s", filename)
         else:
-            logger.warning(f" ⚠️  Could not find {section_name} for {ticker}")
+            logger.warning(" ⚠️  Could not find %s for %s", section_name, ticker)
 
 
 if __name__ == "__main__":
