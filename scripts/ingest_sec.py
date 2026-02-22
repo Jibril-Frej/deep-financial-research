@@ -6,6 +6,7 @@ from edgar import Company, set_identity
 from edgar.company_reports import TenK
 
 from utils.config import settings
+from utils.logging import logger
 
 # Set the identity for EDGAR API access
 set_identity(settings.EDGAR_IDENTITY)
@@ -18,7 +19,8 @@ def download_financial_sections(ticker, folder=settings.RAW_DATA_DIR):
     """
     os.makedirs(folder, exist_ok=True)
 
-    print(f"🔍 Fetching data for {ticker}...")
+    logger.info(f"🔍 Fetching 10-K for {ticker} from EDGAR...")
+
     company = Company(ticker)
     filings = company.get_filings(form="10-K")
 
@@ -44,9 +46,9 @@ def download_financial_sections(ticker, folder=settings.RAW_DATA_DIR):
 
             # Use Pathlib's easy write method
             file_path.write_text(content, encoding="utf-8")
-            print(f" ✅ Saved {filename}")
+            logger.info(f" ✅ Saved {filename}")
         else:
-            print(f" ⚠️  Could not find {section_name} for {ticker}")
+            logger.warning(f" ⚠️  Could not find {section_name} for {ticker}")
 
 
 if __name__ == "__main__":
