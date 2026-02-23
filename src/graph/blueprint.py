@@ -5,18 +5,12 @@ It sets up the nodes, edges, and conditional logic for our financial research as
 from langgraph.graph import END, START, StateGraph
 
 from graph.state import GraphState
+from nodes.clarify import clarify_node
+from nodes.reply import reply_node
 from nodes.search import search_node
 from nodes.supervisor import supervisor_node
-from utils.logging import logger
 
 
-def reply_node(state: GraphState):
-    logger.info("--- NODE: GENERATING FINAL REPLY ---")
-    # We'll use the LLM to write a nice answer later
-    return {"final_response": "Here is what I found in the documents..."}
-
-
-# 2. Define the Routing Logic
 def route_decision(state: GraphState):
     """
     This function looks at the 'next_step' in the state
@@ -27,25 +21,29 @@ def route_decision(state: GraphState):
     if decision == "SEARCH":
         return "search"
     elif decision == "CLARIFY":
-        return "reply"  # For now, just reply with a clarification request
+        return "clarify"
+    elif decision == "REJECT":
+        return "reply"  # Rejections can go straight to reply
     else:
         return END
 
 
-# 3. Build the Graph
 builder = StateGraph(GraphState)
 
 # Add our nodes
 builder.add_node("supervisor", supervisor_node)
 builder.add_node("search", search_node)
 builder.add_node("reply", reply_node)
+builder.add_node("clarify", clarify_node)
 
 # Set the entry point
 builder.add_edge(START, "supervisor")
 
 # Define the Conditional Logic
 builder.add_conditional_edges(
-    "supervisor", route_decision, {"search": "search", "reply": "reply", "end": END}
+    "supervisor",
+    route_decision,
+    {"search": "search", "clarify": "clarify", "reply": "reply", "end": END},
 )
 
 # Connect the search result back to a reply

@@ -17,7 +17,7 @@ def run_indexing():
     3. Indexes them into ChromaDB for retrieval
     """
     # 1. Initialize Embeddings
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small", api_key=settings.OPENAI_API_KEY)
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-large", api_key=settings.OPENAI_API_KEY)
 
     # 2. Prepare Splitter
     # Chunk size 1000 is roughly 2-3 paragraphs; 100 overlap prevents context loss

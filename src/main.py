@@ -1,7 +1,7 @@
 from graph.blueprint import app
 
 # Simulate a user question
-input_state = {"question": "What are the risk factors for NVDA?"}
+input_state = {"question": "What is the state of NVDA?"}
 
 # Run the graph
 output = app.invoke(input_state)

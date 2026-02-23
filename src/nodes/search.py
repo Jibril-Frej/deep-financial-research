@@ -1,3 +1,7 @@
+"""
+This module defines the search_node function.
+"""
+
 from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
 
@@ -19,7 +23,7 @@ def search_node(state: GraphState):
     logger.info("--- NODE: SEARCHING CHROMA DATABASE  ---")
 
     # 1. Initialize Embeddings (Must match the ones used for indexing)
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small", api_key=settings.OPENAI_API_KEY)
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-large", api_key=settings.OPENAI_API_KEY)
 
     # 2. Connect to the existing Vector Store
     vector_db = Chroma(
@@ -36,7 +40,11 @@ def search_node(state: GraphState):
     )
 
     # 4. Extract text from the Document objects
-    retrieved_texts = [d.page_content for d in docs]
+    retrieved_texts = []
+    for i, doc in enumerate(docs):
+        logger.info("Chunk %d Source: %s", i + 1, doc.metadata.get("source", "Unknown"))
+        logger.info("Chunk %d Content Preview: %s", i + 1, doc.page_content[:200])
+        retrieved_texts.append(doc.page_content)
 
     logger.info("Retrieved %d chunks directly from ChromaDB.", len(retrieved_texts))
 

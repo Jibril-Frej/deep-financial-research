@@ -24,7 +24,7 @@ class SupervisorDecision(BaseModel):
 
 
 # Initialize the LLM
-llm = ChatOpenAI(model="gpt-4o-mini", api_key=settings.OPENAI_API_KEY)
+llm = ChatOpenAI(model="gpt-4.1-nano", api_key=settings.OPENAI_API_KEY)
 structured_llm = llm.with_structured_output(SupervisorDecision, method="json_schema")
 
 
@@ -44,7 +44,7 @@ def supervisor_node(state: GraphState):
     You are a financial research assistant. Analyze the user's question: "{question}"
     
     Decide the next step:
-    1. If the question is vague, return: 'CLARIFY'
+    1. If the question is vague, or is not a specific financial question, return: 'CLARIFY'
     2. If the question is about the financials of a specific company (either NVDA or AAPL), return: 'SEARCH'
     3. If the question is unrelated to finance or is a company we do not have, return: 'REJECT'
     
