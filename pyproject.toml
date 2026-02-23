@@ -9,7 +9,8 @@ dependencies = [
     "langchain-community",     
     "chromadb",                
     "flashrank",
-    'langchain-chroma'
+    'langchain-chroma',
+    'streamlit'
 ]
 
 [build-system]
