@@ -1,6 +1,6 @@
 import streamlit as st
 
-from graph.blueprint import app  # Import your compiled LangGraph
+from graph.blueprint import app
 from utils.logging import logger
 
 # --- PAGE CONFIG ---
