@@ -5,15 +5,9 @@ It sets up the nodes, edges, and conditional logic for our financial research as
 from langgraph.graph import END, START, StateGraph
 
 from graph.state import GraphState
+from nodes.search import search_node
 from nodes.supervisor import supervisor_node
 from utils.logging import logger
-
-
-# 1. Define placeholder nodes for now
-def search_node(state: GraphState):
-    logger.info("--- NODE: SEARCHING DATABASE ---")
-    # This is where your ChromaDB logic will eventually live
-    return {"search_results": ["Sample SEC data found..."]}
 
 
 def reply_node(state: GraphState):
@@ -59,5 +53,4 @@ builder.add_edge("search", "reply")
 builder.add_edge("reply", END)
 
 # Compile the graph
-app = builder.compile()  # Compile the graph
 app = builder.compile()

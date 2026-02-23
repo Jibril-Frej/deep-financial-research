@@ -14,7 +14,7 @@ from utils.logging import logger
 def run_indexing():
     """1. Loads raw text files from data/raw
     2. Splits them into chunks with metadata
-    3. Indexes them into ChromaDB for LangGraph retrieval
+    3. Indexes them into ChromaDB for retrieval
     """
     # 1. Initialize Embeddings
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small", api_key=settings.OPENAI_API_KEY)
