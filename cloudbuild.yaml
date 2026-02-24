@@ -4,9 +4,20 @@ steps:
   - name: 'gcr.io/cloud-builders/gsutil'
     args: ['-m', 'cp', '-r', 'gs://deep-financial-research-data/data', '.']
 
-  # Build the image
+  # Pull the previous image to use as cache
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'europe-west6-docker.pkg.dev/deep-financial-research/my-repo/my-app', '.']
+    args: ['pull', 'europe-west6-docker.pkg.dev/deep-financial-research/my-repo/my-app']
+    allowFailure: true  # don't fail on first build when there's no cache yet
+
+  # Build using the cached image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build',
+      '--cache-from', 'europe-west6-docker.pkg.dev/deep-financial-research/my-repo/my-app',
+      '-t', 'europe-west6-docker.pkg.dev/deep-financial-research/my-repo/my-app',
+      '.'
+    ]
+
 
   # Push the image
   - name: 'gcr.io/cloud-builders/docker'
