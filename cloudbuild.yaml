@@ -1,4 +1,9 @@
 steps:
+
+  # Download data from GCS into the build context
+  - name: 'gcr.io/cloud-builders/gsutil'
+    args: ['-m', 'cp', '-r', 'gs://deep-financial-research-data/data', '.']
+
   # Build the image
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'europe-west6-docker.pkg.dev/deep-financial-research/my-repo/my-app', '.']
