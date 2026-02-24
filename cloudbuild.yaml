@@ -1,0 +1,26 @@
+steps:
+  # Build the image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'europe-west6-docker.pkg.dev/deep-financial-research/my-repo/my-app', '.']
+
+  # Push the image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'europe-west6-docker.pkg.dev/deep-financial-research/my-repo/my-app']
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    args:
+      - 'gcloud'
+      - 'run'
+      - 'deploy'
+      - 'deep-financial-research'
+      - '--image=europe-west6-docker.pkg.dev/deep-financial-research/my-repo/my-app'
+      - '--region=europe-west6'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--port=8080'
+      - '--memory=1Gi'
+      - '--set-secrets=OPENAI_API_KEY=OPENAI_API_KEY:latest,EDGAR_IDENTITY=EDGAR_IDENTITY:latest,DEEP_FINANCIAL_RESEARCH_PASSWORD=DEEP_FINANCIAL_RESEARCH_PASSWORD:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
