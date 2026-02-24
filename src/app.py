@@ -1,10 +1,46 @@
+import traceback
+
 import streamlit as st
 
 from graph.blueprint import app
+from utils.config import settings
 from utils.logging import logger
+
+
+def check_password():
+    """Returns `True` if the user had the correct password."""
+
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        if (
+            st.session_state["password"]
+            == settings.DEEP_FINANCIAL_RESEARCH_PASSWORD.get_secret_value()
+        ):
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # don't store password
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        # First run, show input for password.
+        st.text_input("Password", type="password", on_change=password_entered, key="password")
+        return False
+    elif not st.session_state["password_correct"]:
+        # Password not correct, show input + error.
+        st.text_input("Password", type="password", on_change=password_entered, key="password")
+        st.error("😕 Password incorrect")
+        return False
+    else:
+        # Password correct.
+        return True
+
 
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="Deep Financial Research", page_icon="📈")
+
+if not check_password():
+    st.stop()  # Do not continue if check_password is not True.
+
 st.title("📈 Deep Financial Research Assistant")
 st.markdown("Search across SEC filings for **NVDA** and **AAPL**.")
 
@@ -45,3 +81,4 @@ if prompt := st.chat_input("Ask about company financials or risks..."):
         except Exception as e:
             st.error(f"An error occurred: {e}")
             logger.error(f"App Error: {e}")
+            logger.error(traceback.format_exc())

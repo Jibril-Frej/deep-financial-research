@@ -11,6 +11,7 @@ class Settings(BaseSettings):
 
     EDGAR_IDENTITY: SecretStr
     OPENAI_API_KEY: SecretStr
+    DEEP_FINANCIAL_RESEARCH_PASSWORD: SecretStr
 
     DATA_DIR: Path = Path("data")
     RAW_DATA_DIR: Path = DATA_DIR / "raw"
