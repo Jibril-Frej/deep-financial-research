@@ -18,7 +18,6 @@ charset-normalizer==3.4.4
 chromadb==1.5.1
 click==8.3.1
 dataclasses-json==0.6.7
--e git+ssh://git@github.com/Jibril-Frej/deep-financial-research.git@1a5b7a61114c925e3d110bcd7158d9c311cc61f4#egg=deep_financial_research
 distro==1.9.0
 dotenv==0.9.9
 durationpy==0.10
@@ -88,7 +87,6 @@ opentelemetry-semantic-conventions==0.60b1
 orjson==3.11.7
 ormsgpack==1.12.2
 overrides==7.7.0
-packaging @ file:///home/task_176104874243446/conda-bld/packaging_1761049080023/work
 pandas==2.3.3
 pillow==12.1.1
 posthog==5.4.0
