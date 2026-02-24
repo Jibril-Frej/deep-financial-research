@@ -1,25 +1,32 @@
 # 📈 Deep Financial Research Assistant
-An simple POC for an AI-powered research agent built with LangGraph and Streamlit to analyze SEC filings for NVIDIA (NVDA) and Apple (AAPL). The agent uses a "Supervisor" pattern to decide whether to search the financial database, ask for clarification, or reject a non-financial query.
+An AI-powered research agent built with LangGraph and Streamlit to analyze SEC filings for NVIDIA (NVDA) and Apple (AAPL). The agent uses a "Supervisor" pattern to decide whether to search the financial database, ask for clarification, or reject a non-financial query.
+
+## 🌐 Live Demo
+
+**The system is currently deployed live on Google Cloud Platform!** 
+
+If you'd like access to the live demo, please connect with me on [LinkedIn](https://www.linkedin.com/in/jibril-frej/) and I'll provide you with the access details.
 
 ## 🚀 How to Install
 
+
 ### 1. Clone the repository:
-```
-git clone <your-repo-url>
+```bash
+git clone git@github.com:Jibril-Frej/deep-financial-research.git
 cd deep-financial-research
 ```
 
 ### 2. Create and activate a virtual environment:
     
-```
+```bash
 conda create -n dfr python=3.12
 conda activate dfr
 ```
 
 ### 3. Install dependencies:
     
-```
-pip install -e .
+```bash
+pip install -r requirements.txt
 ```
 
 
@@ -30,6 +37,32 @@ Create a .env file in the root directory (see .env.example):
 ```
 OPENAI_API_KEY=your_openai_key_here
 EDGAR_IDENTITY=YourName your@email.com
+DEEP_FINANCIAL_RESEARCH_PASSWORD=yourpassword
+```
+
+## ☁️ Cloud Deployment
+
+The application is configured for deployment on Google Cloud Platform using:
+
+- **Cloud Run**: Serverless container deployment
+- **Cloud Build**: Automated CI/CD pipeline 
+- **Secret Manager**: Secure API key management
+- **Cloud Storage**: Data persistence for vector embeddings
+- **Artifact Registry**: Container image storage
+
+### Deployment Pipeline
+
+The `cloudbuild.yaml` configuration automatically:
+1. Downloads pre-built data from Cloud Storage
+2. Builds the Docker image with caching
+3. Pushes to Artifact Registry
+4. Deploys to Cloud Run with proper secrets injection
+
+To deploy your own instance:
+
+```bash
+# Ensure you have the required GCP services enabled
+gcloud builds submit --config cloudbuild.yaml
 ```
 
 
@@ -178,9 +211,11 @@ data/
 
 ### Project Configuration
 ```
-pyproject.toml           # Dependencies and build configuration
-.env                     # Environment variables (OPENAI_API_KEY, EDGAR_IDENTITY)
-README.md               # This documentation
+requirements.txt         # Python dependencies for production
+.env                    # Environment variables (OPENAI_API_KEY, EDGAR_IDENTITY)
+Dockerfile              # Container configuration
+cloudbuild.yaml         # GCP Cloud Build pipeline
+README.md              # This documentation
 ```
 
 ## 💡 Usage Examples
@@ -202,6 +237,9 @@ Ask specific financial questions about the supported companies:
 - **LLM Models**: GPT-4 for supervisor decisions and response generation
 - **Document Processing**: SEC filings chunked for optimal retrieval
 - **Framework**: LangGraph for orchestration, Streamlit for UI
+- **Deployment**: Docker containerization with GCP Cloud Run
+- **CI/CD**: Google Cloud Build for automated deployments
+- **Infrastructure**: Google Cloud Platform with Secret Manager and Cloud Storage
 
 ## 📝 Notes
 
