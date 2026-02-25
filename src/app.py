@@ -73,24 +73,62 @@ if prompt := st.chat_input("Ask about company financials or risks..."):
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # 2. Run the LangGraph
-    with st.spinner("Analyzing filings..."):
+    # 2. Run the LangGraph with dynamic status updates
+    status_messages = {
+        "supervisor": "🤔 Analyzing your question...",
+        "search": "🔍 Searching SEC filings for relevant data...",
+        "reply": "✍️ Generating detailed response...",
+        "clarify": "💭 Processing clarification...",
+    }
+
+    # Keep track of executed steps for display
+    executed_steps = []
+
+    # Use st.status for progressive updates
+    with st.status("🤔 Analyzing your question...", expanded=False) as status:
         try:
             # Initial state for the graph
             inputs = {"question": prompt}
+            final_result = None
+            executed_steps.append("Started analysis")
 
-            # Run the graph (this triggers supervisor -> search -> reply)
-            result = app.invoke(inputs)
+            # Track execution with streaming
+            for chunk in app.stream(inputs):
+                for node_name, output in chunk.items():
+                    # Update status message based on current node
+                    if node_name in status_messages:
+                        status.update(label=status_messages[node_name], state="running")
+                        executed_steps.append(f"Executed: {node_name}")
 
-            # Extract the final answer
-            answer = result.get("final_response", "I'm sorry, I couldn't process that.")
+                    # Capture final result
+                    if "final_response" in output:
+                        final_result = output
 
-            # 3. Add assistant response to UI
-            with st.chat_message("assistant"):
-                st.markdown(answer)
-            st.session_state.messages.append({"role": "assistant", "content": answer})
+            # If streaming didn't capture final result, use invoke as fallback
+            if final_result is None:
+                status.update(label="🔄 Completing analysis...", state="running")
+                final_result = app.invoke(inputs)
+                executed_steps.append("Completed fallback processing")
+
+            # Mark as complete and show execution summary
+            status.update(label="✅ Analysis complete", state="complete")
+            executed_steps.append("Analysis finished successfully")
+
+            # Display execution summary inside the status widget
+            st.write("**Execution Steps:**")
+            for step in executed_steps:
+                st.write(f"• {step}")
 
         except Exception as e:
+            status.update(label="❌ Error occurred", state="error")
             st.error(f"An error occurred: {e}")
             logger.error(f"App Error: {e}")
             logger.error(traceback.format_exc())
+            final_result = None
+
+    # 3. Add assistant response to UI (outside the status context)
+    if final_result:
+        answer = final_result.get("final_response", "I'm sorry, I couldn't process that.")
+        with st.chat_message("assistant"):
+            st.markdown(answer)
+        st.session_state.messages.append({"role": "assistant", "content": answer})

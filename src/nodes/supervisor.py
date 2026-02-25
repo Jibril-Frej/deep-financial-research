@@ -46,7 +46,8 @@ def supervisor_node(state: GraphState):
     Decide the next step:
     1. If the question is vague, or is not a specific financial question, return: 'CLARIFY'
     2. If the question is about the financials of a specific company (either NVDA or AAPL), return: 'SEARCH'
-    3. If the question is unrelated to finance or is a company we do not have, return: 'REJECT'
+    3. If the question is unrelated to finance, return: 'REJECT'
+    4. If the question is about a company other than NVDA or AAPL, return: 'REJECT'
     
     Respond with ONLY one word: CLARIFY, SEARCH, or REJECT.
     """
