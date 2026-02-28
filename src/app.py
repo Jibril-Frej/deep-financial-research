@@ -101,14 +101,33 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
+
+if "is_processing" not in st.session_state:
+    st.session_state.is_processing = False
+
+if "pending_prompt" not in st.session_state:
+    st.session_state.pending_prompt = None
+
 # --- SEARCH BAR (Chat Input) ---
-if prompt := st.chat_input("Ask about company financials or risks..."):
+if prompt := st.chat_input(
+    "Ask about company financials or risks...", disabled=st.session_state.is_processing
+):
+
     allowed, rate_limit_msg = check_rate_limit()
 
     if not allowed:
         st.warning(rate_limit_msg)
         st.stop()  # Do not continue if rate limit is reached.
 
+    st.session_state.is_processing = True
+    st.session_state.pending_prompt = prompt
+    st.rerun()  # Re-render with input disabled BEFORE graph runs
+
+# Process the pending prompt (we arrive here after the rerun above)
+if st.session_state.pending_prompt:
+
+    prompt = st.session_state.pending_prompt
+    st.session_state.pending_prompt = None  # Clear it so it doesn't re-run
     # 1. Add user message to UI
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
@@ -167,9 +186,13 @@ if prompt := st.chat_input("Ask about company financials or risks..."):
             logger.error(traceback.format_exc())
             final_result = None
 
+        finally:
+            st.session_state.is_processing = False  # Unlock input
+
     # 3. Add assistant response to UI (outside the status context)
     if final_result:
         answer = final_result.get("final_response", "I'm sorry, I couldn't process that.")
         with st.chat_message("assistant"):
             st.markdown(answer)
         st.session_state.messages.append({"role": "assistant", "content": answer})
+    st.rerun()  # 👈 Force re-render to re-enable the input
