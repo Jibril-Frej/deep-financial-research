@@ -36,6 +36,7 @@ steps:
       - '--allow-unauthenticated'
       - '--port=8080'
       - '--memory=1Gi'
+      - '--concurrency=5'
       - '--set-secrets=OPENAI_API_KEY=OPENAI_API_KEY:latest,EDGAR_IDENTITY=EDGAR_IDENTITY:latest,DEEP_FINANCIAL_RESEARCH_PASSWORD=DEEP_FINANCIAL_RESEARCH_PASSWORD:latest'
 
 options:

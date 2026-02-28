@@ -1,10 +1,45 @@
+"""This is the main Streamlit app for the Deep Financial Research Assistant."""
+
+import time
 import traceback
+from collections import deque
 
 import streamlit as st
 
 from graph.blueprint import app
 from utils.config import settings
 from utils.logging import logger
+
+
+def check_rate_limit() -> tuple[bool, str]:
+    """
+    Returns (is_allowed, error_message).
+    Limits: 1 msg/sec and 10 msgs/min.
+    """
+    now = time.time()
+
+    # Initialize timestamp queues in session state
+    if "msg_timestamps" not in st.session_state:
+        st.session_state.msg_timestamps = deque()
+
+    timestamps = st.session_state.msg_timestamps
+
+    # Drop timestamps older than 60 seconds
+    while timestamps and timestamps[0] < now - 60:
+        timestamps.popleft()
+
+    # Check per-minute limit (10 messages)
+    if len(timestamps) >= 10:
+        wait = int(60 - (now - timestamps[0])) + 1
+        return False, f"⏳ Rate limit reached: max 10 messages per minute. Please wait {wait}s."
+
+    # Check per-second limit (1 message)
+    if timestamps and timestamps[-1] >= now - 1:
+        return False, "⏳ Please wait at least 1 second between messages."
+
+    # All good — record this message
+    timestamps.append(now)
+    return True, ""
 
 
 def check_password():
@@ -68,6 +103,12 @@ for message in st.session_state.messages:
 
 # --- SEARCH BAR (Chat Input) ---
 if prompt := st.chat_input("Ask about company financials or risks..."):
+    allowed, rate_limit_msg = check_rate_limit()
+
+    if not allowed:
+        st.warning(rate_limit_msg)
+        st.stop()  # Do not continue if rate limit is reached.
+
     # 1. Add user message to UI
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
