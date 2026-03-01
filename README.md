@@ -88,15 +88,6 @@ python scripts/index.py
 
 The vector database will be stored in `data/index`.
 
-### 3. Visualize the Agent Graph (Optional)
-
-Generate a diagram of the agent workflow:
-
-```
-python scripts/get_graph.py
-```
-
-This creates `graph_structure.png` showing the LangGraph flow.
 
 ## 🎯 How to Run
 
