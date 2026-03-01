@@ -23,10 +23,9 @@ def reply_node(state: GraphState):
     question = state["question"]
 
     # Use enhanced search results with metadata if available, otherwise fall back to basic text
-    search_results_with_metadata = state.get("search_results_with_metadata", [])
-    basic_search_results = state.get("search_results", [])
+    search_results = state.get("search_results", [])
 
-    if not search_results_with_metadata and not basic_search_results:
+    if not search_results:
         return {
             "final_response": "I'm sorry, I couldn't find any specific information in the SEC filings to answer that question."
         }
@@ -35,8 +34,8 @@ def reply_node(state: GraphState):
     context_parts = []
     document_sources = set()
 
-    if search_results_with_metadata:
-        for i, result in enumerate(search_results_with_metadata):
+    if search_results:
+        for result in search_results:
             content = result["content"]
             metadata = result["metadata"]
 
@@ -51,8 +50,7 @@ def reply_node(state: GraphState):
                 f"[Source: {ticker} - {section.replace('_', ' ').title()}]\n{content}"
             )
     else:
-        # Fallback to basic search results
-        context_parts = basic_search_results
+        context_parts.append("No relevant information found in the SEC filings.")
 
     context = "\n\n---\n\n".join(context_parts)
 

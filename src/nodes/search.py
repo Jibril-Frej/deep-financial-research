@@ -41,7 +41,7 @@ def search_node(state: GraphState):
 
     # 4. Extract text and metadata from the Document objects
     retrieved_texts = []
-    search_results_with_metadata = []
+    search_results = []
 
     for i, doc in enumerate(docs):
         logger.info("Chunk %d Source: %s", i + 1, doc.metadata.get("source", "Unknown"))
@@ -51,13 +51,10 @@ def search_node(state: GraphState):
         retrieved_texts.append(doc.page_content)
 
         # Add enhanced results with metadata
-        search_results_with_metadata.append(
-            {"content": doc.page_content, "metadata": doc.metadata}
-        )
+        search_results.append({"content": doc.page_content, "metadata": doc.metadata})
 
     logger.info("Retrieved %d chunks directly from ChromaDB.", len(retrieved_texts))
 
     return {
-        "search_results": retrieved_texts,  # For backward compatibility
-        "search_results_with_metadata": search_results_with_metadata,  # Enhanced results
+        "search_results": search_results,
     }
