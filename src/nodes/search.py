@@ -17,7 +17,7 @@ def search_node(state: GraphState):
         state (GraphState): The current state of the graph, containing the user's question.
 
     Returns:
-        dict: A dictionary containing the search results.
+        dict: A dictionary containing the search results with text content and metadata.
     """
 
     logger.info("--- NODE: SEARCHING CHROMA DATABASE  ---")
@@ -39,13 +39,25 @@ def search_node(state: GraphState):
         k=5,
     )
 
-    # 4. Extract text from the Document objects
+    # 4. Extract text and metadata from the Document objects
     retrieved_texts = []
+    search_results_with_metadata = []
+
     for i, doc in enumerate(docs):
         logger.info("Chunk %d Source: %s", i + 1, doc.metadata.get("source", "Unknown"))
         logger.info("Chunk %d Content Preview: %s", i + 1, doc.page_content[:200])
+
+        # Keep backward compatibility
         retrieved_texts.append(doc.page_content)
+
+        # Add enhanced results with metadata
+        search_results_with_metadata.append(
+            {"content": doc.page_content, "metadata": doc.metadata}
+        )
 
     logger.info("Retrieved %d chunks directly from ChromaDB.", len(retrieved_texts))
 
-    return {"search_results": retrieved_texts}
+    return {
+        "search_results": retrieved_texts,  # For backward compatibility
+        "search_results_with_metadata": search_results_with_metadata,  # Enhanced results
+    }

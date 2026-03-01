@@ -47,9 +47,18 @@ def run_indexing():
         loader = TextLoader(str(file_path))
         docs = loader.load()
 
-        # Add metadata to each chunk for filtered retrieval later
+        # Add comprehensive metadata to each chunk for links and filtered retrieval
         for doc in docs:
-            doc.metadata = {"ticker": ticker, "section": section, "source": file_path.name}
+            doc.metadata = {
+                "ticker": ticker,
+                "section": section,
+                "source": file_path.name,
+                "file_path": str(file_path),  # Full file path for potential links
+                "document_type": "SEC Filing",  # Could be expanded later
+                "section_display": section.replace(
+                    "_", " "
+                ).title(),  # Human-readable section name
+            }
 
         chunks = text_splitter.split_documents(docs)
         all_documents.extend(chunks)
