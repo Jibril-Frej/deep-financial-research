@@ -30,9 +30,11 @@ def reply_node(state: GraphState):
             "final_response": "I'm sorry, I couldn't find any specific information in the SEC filings to answer that question."
         }
 
-    # Build context from search results
+    # Build context from search results with URLs for inline linking
     context_parts = []
     document_sources = set()
+    document_urls = {}  # Track URLs for each ticker
+    source_url_map = {}  # Map source descriptions to URLs
 
     if search_results:
         for result in search_results:
@@ -43,37 +45,44 @@ def reply_node(state: GraphState):
             ticker = metadata.get("ticker", "Unknown")
             section = metadata.get("section", "unknown")
             source = metadata.get("source", "Unknown")
+            filing_url = metadata.get("filing_url")
+
             document_sources.add((ticker, section, source))
 
-            # Add content with source attribution
-            context_parts.append(
-                f"[Source: {ticker} - {section.replace('_', ' ').title()}]\n{content}"
-            )
+            # Store URL for this ticker if available
+            if filing_url and ticker != "Unknown":
+                document_urls[ticker] = filing_url
+                # Create a source reference for inline linking
+                section_display = section.replace("_", " ").title()
+                source_key = f"{ticker}'s {section_display}"
+                source_url_map[source_key] = filing_url
+
+            # Add content with enhanced source attribution including URL info
+            section_display = section.replace("_", " ").title()
+            source_info = f"[Source: {ticker} - {section_display}"
+            if filing_url:
+                source_info += f" - URL: {filing_url}"
+            source_info += "]"
+
+            context_parts.append(f"{source_info}\n{content}")
     else:
         context_parts.append("No relevant information found in the SEC filings.")
 
     context = "\n\n---\n\n".join(context_parts)
 
-    # Create document links section
-    document_links_section = ""
-    if document_sources:
-        document_links_section = "\n\n**📄 Sources Referenced:**\n"
-        for ticker, section, source in sorted(document_sources):
-            # Format section name for display
-            section_display = section.replace("_", " ").title()
-            document_links_section += f"- **{ticker}** - {section_display} (from {source})\n"
-
-    # Enhanced prompt with instruction to reference sources
+    # Enhanced prompt with instruction to use inline source links
     prompt = f"""
     You are a Senior Financial Analyst. Answer the user's question using ONLY the provided SEC filing context.
-    Each piece of context is labeled with its source document.
+    Each piece of context is labeled with its source document and includes the URL to the original SEC filing.
     
     Guidelines:
     1. If the information is not in the context, state that you don't have enough data.
     2. Use a professional, objective tone.
-    3. Cite the company and document section when referencing specific information.
+    3. IMPORTANT: When citing information, create inline markdown links to the specific SEC filing.
+       Format: "According to [🔗](URL), ..." or "[🔗](URL) indicates...".
     4. Use bullet points for readability if listing risks or financial data.
-    5. When citing information, reference the source (e.g., "According to Apple's Business section..." or "NVIDIA's Risk Factors indicate...").
+    5. Extract the URL from the context source information to create proper markdown links.
+    6. Always link to the source when mentioning specific information from that source.
     
     CONTEXT:
     {context}
@@ -85,13 +94,13 @@ def reply_node(state: GraphState):
     response = llm.invoke(
         [
             SystemMessage(
-                content="You are a helpful assistant that answers based on provided documents. Always cite your sources when possible."
+                content="You are a helpful financial analyst that answers based on provided SEC documents. Create inline markdown links when citing specific sources. Always provide clickable links to the SEC filings when referencing information."
             ),
             HumanMessage(content=prompt),
         ]
     )
 
-    # Combine the main response with document links
-    final_response = response.content + document_links_section
+    # Combine the main response with additional info
+    final_response = response.content
 
     return {"final_response": final_response}
