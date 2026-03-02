@@ -1,3 +1,5 @@
+import re
+
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 
@@ -35,6 +37,7 @@ def reply_node(state: GraphState):
     document_sources = set()
     document_urls = {}  # Track URLs for each ticker
     source_url_map = {}  # Map source descriptions to URLs
+    urls_set = set()  # To track unique URLs for the links section
 
     if search_results:
         for result in search_results:
@@ -46,6 +49,7 @@ def reply_node(state: GraphState):
             section = metadata.get("section", "unknown")
             source = metadata.get("source", "Unknown")
             filing_url = metadata.get("filing_url")
+            urls_set.add(filing_url)
 
             document_sources.add((ticker, section, source))
 
@@ -79,7 +83,7 @@ def reply_node(state: GraphState):
     1. If the information is not in the context, state that you don't have enough data.
     2. Use a professional, objective tone.
     3. IMPORTANT: When citing information, create inline markdown links to the specific SEC filing.
-       Format: "According to [🔗](URL), ..." or "[🔗](URL) indicates...".
+       Format: "[🔗](URL)"
     4. Use bullet points for readability if listing risks or financial data.
     5. Extract the URL from the context source information to create proper markdown links.
     6. Always link to the source when mentioning specific information from that source.
@@ -102,5 +106,23 @@ def reply_node(state: GraphState):
 
     # Combine the main response with additional info
     final_response = response.content
+    assert isinstance(final_response, str), f"Unexpected response type: {type(final_response)}"
+
+    # Add a verification step to ensure that the links included in the response
+    # are in urls_set and in the correct markdown format
+
+    # Extract URLs from the response using a simple regex for markdown links
+    markdown_link_pattern = r"\[🔗\]\((https?://[^\s)]+)\)"
+    extracted_urls = re.findall(markdown_link_pattern, final_response)
+
+    # Verify that all extracted URLs are in the urls_set
+    # if not, we can log a warning and remove any links that are not valid
+    for url in extracted_urls:
+        if url not in urls_set:
+            logger.warning(
+                "The response contains a URL that was not in the retrieved search results: %s", url
+            )
+            # Remove the invalid link from the final response
+            final_response = re.sub(rf"\[🔗\]\({re.escape(url)}\)", "", final_response)
 
     return {"final_response": final_response}
