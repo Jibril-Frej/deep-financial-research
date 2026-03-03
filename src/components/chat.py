@@ -9,10 +9,10 @@ from services.rate_limit import check_rate_limit
 from utils.logging import logger
 
 STATUS_MESSAGES = {
-    "supervisor": "Analyzing your question...",
-    "search": "Searching SEC filings for relevant data...",
-    "reply": "Generating detailed response...",
-    "clarify": "Processing clarification...",
+    "supervisor": "🤔 Analyzing your question...",
+    "search": "🔍 Searching SEC filings for relevant data...",
+    "reply": "✍️ Generating detailed response...",
+    "clarify": "💡 Processing clarification...",
 }
 
 
@@ -52,7 +52,7 @@ def _run_graph(prompt: str) -> str | None:
     """Execute the LangGraph pipeline and return the final response."""
     executed_steps = []
 
-    with st.status("Analyzing your question...", expanded=False) as status:
+    with st.status("🤔 Analyzing your question...", expanded=False) as status:
         try:
             inputs = {"question": prompt}
             final_result = None
@@ -68,11 +68,11 @@ def _run_graph(prompt: str) -> str | None:
                         final_result = output
 
             if final_result is None:
-                status.update(label="Completing analysis...", state="running")
+                status.update(label="🔄 Completing analysis...", state="running")
                 final_result = app.invoke(inputs)
                 executed_steps.append("Completed fallback processing")
 
-            status.update(label="Analysis complete", state="complete")
+            status.update(label="✅ Analysis complete", state="complete")
             executed_steps.append("Analysis finished successfully")
 
             st.write("**Execution Steps:**")
