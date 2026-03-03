@@ -4,6 +4,8 @@ import time
 import traceback
 from collections import deque
 
+import bcrypt
+
 import streamlit as st
 
 from graph.blueprint import app
@@ -47,9 +49,9 @@ def check_password():
 
     def password_entered():
         """Checks whether a password entered by the user is correct."""
-        if (
-            st.session_state["password"]
-            == settings.DEEP_FINANCIAL_RESEARCH_PASSWORD.get_secret_value()
+        if bcrypt.checkpw(
+            st.session_state["password"].encode(),
+            settings.DEEP_FINANCIAL_RESEARCH_PASSWORD.get_secret_value().encode(),
         ):
             st.session_state["password_correct"] = True
             del st.session_state["password"]  # don't store password
