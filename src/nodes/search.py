@@ -9,6 +9,15 @@ from graph.state import GraphState
 from utils.config import settings
 from utils.logging import logger
 
+# Initialised once at module load — the HNSW index is loaded into memory here
+# and shared across all requests, instead of being reloaded on every search call.
+_embeddings = OpenAIEmbeddings(model="text-embedding-3-small", api_key=settings.OPENAI_API_KEY)
+_vector_db = Chroma(
+    persist_directory=str(settings.INDEX_DIR),
+    embedding_function=_embeddings,
+    collection_name="sec_filings",
+)
+
 
 def search_node(state: GraphState):
     """Searches the Chroma database for relevant documents based on the user's question.
@@ -22,17 +31,7 @@ def search_node(state: GraphState):
 
     logger.info("--- NODE: SEARCHING CHROMA DATABASE  ---")
 
-    # 1. Initialize Embeddings (Must match the ones used for indexing)
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small", api_key=settings.OPENAI_API_KEY)
-
-    # 2. Connect to the existing Vector Store
-    vector_db = Chroma(
-        persist_directory=str(settings.INDEX_DIR),
-        embedding_function=embeddings,
-        collection_name="sec_filings",
-    )
-
-    # 3. Build metadata filter from extracted ticker / section
+    # Build metadata filter from extracted ticker / section
     ticker = state.get("ticker")
     section = state.get("section")
 
@@ -45,8 +44,8 @@ def search_node(state: GraphState):
 
     logger.info("Search filter: %s", where)
 
-    # 4. Perform filtered vector search (top 5 most similar chunks)
-    docs = vector_db.similarity_search(
+    # Perform filtered vector search (top 5 most similar chunks)
+    docs = _vector_db.similarity_search(
         query=state["question"],
         k=5,
         filter=where,
