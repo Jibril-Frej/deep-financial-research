@@ -32,11 +32,24 @@ def search_node(state: GraphState):
         collection_name="sec_filings",
     )
 
-    # 3. Perform Direct Vector Search
-    # We look for the top 5 most similar chunks
+    # 3. Build metadata filter from extracted ticker / section
+    ticker = state.get("ticker")
+    section = state.get("section")
+
+    if ticker and section:
+        where = {"$and": [{"ticker": {"$eq": ticker}}, {"section": {"$eq": section}}]}
+    elif ticker:
+        where = {"ticker": {"$eq": ticker}}
+    else:
+        where = None
+
+    logger.info("Search filter: %s", where)
+
+    # 4. Perform filtered vector search (top 5 most similar chunks)
     docs = vector_db.similarity_search(
         query=state["question"],
         k=5,
+        filter=where,
     )
 
     # 4. Extract text and metadata from the Document objects
