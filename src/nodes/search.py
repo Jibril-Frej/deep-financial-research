@@ -23,7 +23,7 @@ def search_node(state: GraphState):
     logger.info("--- NODE: SEARCHING CHROMA DATABASE  ---")
 
     # 1. Initialize Embeddings (Must match the ones used for indexing)
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-large", api_key=settings.OPENAI_API_KEY)
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-small", api_key=settings.OPENAI_API_KEY)
 
     # 2. Connect to the existing Vector Store
     vector_db = Chroma(

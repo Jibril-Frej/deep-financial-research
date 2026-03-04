@@ -3,7 +3,6 @@ Indexing script for SEC filings using LangChain and ChromaDB.
 """
 
 import json
-from pathlib import Path
 
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import Chroma
@@ -42,7 +41,7 @@ def run_indexing():
     3. Indexes them into ChromaDB for retrieval
     """
     # 1. Initialize Embeddings
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-large", api_key=settings.OPENAI_API_KEY)
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-small", api_key=settings.OPENAI_API_KEY)
 
     # 2. Load document metadata containing URLs (if available)
     metadata_map = load_document_metadata(settings.RAW_DATA_DIR)

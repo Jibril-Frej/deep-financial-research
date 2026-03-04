@@ -224,7 +224,7 @@ Ask specific financial questions about the supported companies:
 
 ## 🔧 Technical Details
 
-- **Vector Search**: OpenAI `text-embedding-3-large` embeddings with ChromaDB
+- **Vector Search**: OpenAI `text-embedding-3-small` embeddings with ChromaDB
 - **LLM Models**: GPT-4 for supervisor decisions and response generation
 - **Document Processing**: SEC filings chunked for optimal retrieval
 - **Framework**: LangGraph for orchestration, Streamlit for UI
