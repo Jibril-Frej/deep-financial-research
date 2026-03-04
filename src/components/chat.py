@@ -10,6 +10,7 @@ from utils.logging import logger
 
 STATUS_MESSAGES = {
     "supervisor": "🤔 Analyzing your question...",
+    "extractor": "🏢 Identifying company and filing section...",
     "search": "🔍 Searching SEC filings for relevant data...",
     "reply": "✍️ Generating detailed response...",
     "clarify": "💡 Processing clarification...",
