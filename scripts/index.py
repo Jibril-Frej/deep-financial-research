@@ -8,9 +8,12 @@ from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from tqdm import tqdm
 
 from utils.config import settings
 from utils.logging import logger
+
+BATCH_SIZE = 100  # chunks per OpenAI embedding call
 
 
 def load_document_metadata(raw_data_dir):
@@ -99,14 +102,21 @@ def run_indexing():
         all_documents.extend(chunks)
         logger.info(" ✅ Processed %s (%d chunks)", file_path.name, len(chunks))
 
-    # 3. Create/Update Vector Store
-    logger.info("📦 Indexing %d chunks into ChromaDB...", len(all_documents))
-    Chroma.from_documents(
-        documents=all_documents,
+    # 3. Create/Update Vector Store in batches with a progress bar
+    total = len(all_documents)
+    logger.info("📦 Indexing %d chunks into ChromaDB (batch size: %d)...", total, BATCH_SIZE)
+
+    batches = [all_documents[i : i + BATCH_SIZE] for i in range(0, total, BATCH_SIZE)]
+
+    # Initialise the collection with the first batch, then add the rest
+    vector_db = Chroma.from_documents(
+        documents=batches[0],
         embedding=embeddings,
         persist_directory=str(settings.INDEX_DIR),
         collection_name="sec_filings",
     )
+    for batch in tqdm(batches[1:], desc="Embedding batches", unit="batch"):
+        vector_db.add_documents(batch)
 
     logger.info("🚀 Indexing complete! Your data is ready for LangGraph.")
 
