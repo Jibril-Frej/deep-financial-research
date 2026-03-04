@@ -6,32 +6,31 @@ from langgraph.graph import END, START, StateGraph
 
 from graph.state import GraphState
 from nodes.clarify import clarify_node
+from nodes.extractor import extractor_node
 from nodes.reply import reply_node
 from nodes.search import search_node
 from nodes.supervisor import supervisor_node
 
 
 def route_decision(state: GraphState):
-    """
-    This function looks at the 'next_step' in the state
-    and tells LangGraph which string (node name) to go to next.
-    """
+    """Routes to the next node based on the supervisor's decision."""
     decision = state.get("next_step")
 
     if decision == "SEARCH":
-        return "search"
+        return "extractor"
     elif decision == "CLARIFY":
         return "clarify"
     elif decision == "REJECT":
-        return "reply"  # Rejections can go straight to reply
+        return "reply"
     else:
-        return END
+        return END  # UNSUPPORTED: final_response already set, go straight to END
 
 
 builder = StateGraph(GraphState)
 
 # Add our nodes
 builder.add_node("supervisor", supervisor_node)
+builder.add_node("extractor", extractor_node)
 builder.add_node("search", search_node)
 builder.add_node("reply", reply_node)
 builder.add_node("clarify", clarify_node)
@@ -43,10 +42,11 @@ builder.add_edge(START, "supervisor")
 builder.add_conditional_edges(
     "supervisor",
     route_decision,
-    {"search": "search", "clarify": "clarify", "reply": "reply", "end": END},
+    {"extractor": "extractor", "clarify": "clarify", "reply": "reply", END: END},
 )
 
-# Connect the search result back to a reply
+# extractor feeds into search, search feeds into reply
+builder.add_edge("extractor", "search")
 builder.add_edge("search", "reply")
 builder.add_edge("reply", END)
 
