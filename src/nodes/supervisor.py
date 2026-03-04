@@ -17,7 +17,7 @@ warnings.filterwarnings(
 )
 
 _UNSUPPORTED_MESSAGE = (
-    "This tool currently supports searches about a **single company** at a time. "
+    "This tool currently supports searches about a **single company** in the S&P 500 at a time. "
     "Queries about multiple companies or entire sectors will be supported in a future update. "
     "Please ask about a specific company (e.g. 'What are Apple's main risks?')."
 )
@@ -47,12 +47,25 @@ def supervisor_node(state: GraphState):
     You are a financial research assistant routing user questions about SEC filings.
     Analyze the question: "{question}"
 
-    Decide the next step:
-    1. CLARIFY     — question is too vague or does not mention a specific company.
-    2. SEARCH      — question is about the financials of exactly ONE specific company.
-    3. REJECT      — question is completely unrelated to finance or SEC filings.
-    4. UNSUPPORTED — question asks about MORE THAN ONE company, or about a sector/industry
-                     as a whole (e.g. "compare Apple and Microsoft", "how do tech companies...").
+    Follow this decision tree in order:
+
+    1. REJECT      — the question has nothing to do with finance, business, or SEC filings.
+                     Example: "What is the weather today?"
+
+    2. UNSUPPORTED — the question mentions a specific entity but it is NOT an S&P 500 publicly
+                     traded company (e.g. a university, government body, private company, or
+                     non-US company), OR it asks about more than one company, OR it asks about
+                     a sector/industry as a whole.
+                     Examples: "Harvard University risks", "compare Apple and Microsoft",
+                     "how do tech companies discuss AI risk?"
+
+    3. CLARIFY     — the question is about finance/business but does not mention any specific
+                     company at all (too vague to search).
+                     Example: "What are the main risks?" (no company mentioned)
+
+    4. SEARCH      — the question is about the financials of exactly ONE specific S&P 500
+                     publicly traded company.
+                     Example: "What are Apple's main risk factors?"
     """
 
     response = structured_llm.invoke([SystemMessage(content=prompt)])
