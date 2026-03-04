@@ -15,6 +15,8 @@ class GraphState(TypedDict):
 
     question: str  # The user's original query
     reformulated_question: Optional[str]  # The "cleaner" version for the DB
+    ticker: Optional[str]  # Extracted company ticker, e.g. "AAPL"
+    section: Optional[str]  # Extracted section intent: "risks", "business", "mnda", or None
     search_results: Optional[List[DocumentChunk]]  # The retrieved chunks with metadata
     final_response: Optional[str]  # The actual answer to the user
     next_step: str  # A flag to tell LangGraph where to go next

@@ -27,8 +27,8 @@ def clarify_node(state: GraphState):
     As a financial assistant, you are currently unable to answer this because it is too vague.
     Please ask a follow-up question to help the user. 
     Common issues:
-    - They didn't mention a specific company (NVDA or AAPL).
-    - They did not ask about a specific financial metric (revenue, profit, etc.).
+    - They didn't mention a specific company.
+    - They did not ask about a specific financial metric (revenue, profit, risks, etc.).
     - They asked a non-financial question.
     - They used ambiguous language that could refer to multiple things.
     

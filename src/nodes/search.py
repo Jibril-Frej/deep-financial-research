@@ -23,7 +23,7 @@ def search_node(state: GraphState):
     logger.info("--- NODE: SEARCHING CHROMA DATABASE  ---")
 
     # 1. Initialize Embeddings (Must match the ones used for indexing)
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-large", api_key=settings.OPENAI_API_KEY)
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-small", api_key=settings.OPENAI_API_KEY)
 
     # 2. Connect to the existing Vector Store
     vector_db = Chroma(
@@ -32,11 +32,24 @@ def search_node(state: GraphState):
         collection_name="sec_filings",
     )
 
-    # 3. Perform Direct Vector Search
-    # We look for the top 5 most similar chunks
+    # 3. Build metadata filter from extracted ticker / section
+    ticker = state.get("ticker")
+    section = state.get("section")
+
+    if ticker and section:
+        where = {"$and": [{"ticker": {"$eq": ticker}}, {"section": {"$eq": section}}]}
+    elif ticker:
+        where = {"ticker": {"$eq": ticker}}
+    else:
+        where = None
+
+    logger.info("Search filter: %s", where)
+
+    # 4. Perform filtered vector search (top 5 most similar chunks)
     docs = vector_db.similarity_search(
         query=state["question"],
         k=5,
+        filter=where,
     )
 
     # 4. Extract text and metadata from the Document objects
