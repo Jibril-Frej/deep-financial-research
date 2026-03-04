@@ -35,6 +35,7 @@ steps:
       - '--platform=managed'
       - '--allow-unauthenticated'
       - '--port=8080'
+      - '--cpu=2'
       - '--memory=8Gi'
       - '--concurrency=5'
       - '--max-instances=1'
