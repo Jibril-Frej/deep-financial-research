@@ -120,6 +120,18 @@ def run_indexing():
     for batch in tqdm(batches[1:], desc="Embedding batches", unit="batch"):
         vector_db.add_documents(batch)
 
+    # Write S&P 500 company lookup for runtime use (ticker → company_name, gics_sector)
+    sp500_lookup = {
+        ticker: {
+            "company_name": meta.get("company_name"),
+            "gics_sector": meta.get("gics_sector"),
+        }
+        for ticker, meta in metadata_map.items()
+    }
+    lookup_path = settings.INDEX_DIR / "sp500_companies.json"
+    lookup_path.write_text(json.dumps(sp500_lookup, indent=2), encoding="utf-8")
+    logger.info("📋 Wrote S&P 500 lookup with %d companies to %s", len(sp500_lookup), lookup_path)
+
     logger.info("🚀 Indexing complete! Your data is ready for LangGraph.")
 
 
