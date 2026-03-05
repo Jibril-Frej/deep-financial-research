@@ -93,6 +93,7 @@ def run_indexing():
                 ).title(),  # Human-readable section name
                 # Add SEC document URL information if available
                 "company_name": doc_metadata.get("company_name"),
+                "gics_sector": doc_metadata.get("gics_sector"),
                 "filing_url": doc_metadata.get("filing_url"),
                 "accession_number": doc_metadata.get("accession_number"),
                 "period_of_report": doc_metadata.get("period_of_report"),
