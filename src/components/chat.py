@@ -59,14 +59,17 @@ def _run_graph(prompt: str) -> str | None:
             final_result = None
             executed_steps.append("Started analysis")
 
-            for chunk in app.stream(inputs):
-                for node_name, output in chunk.items():
+            for event in app.stream(inputs, stream_mode="debug"):
+                if event["type"] == "task":
+                    node_name = event["payload"]["name"]
                     if node_name in STATUS_MESSAGES:
                         status.update(label=STATUS_MESSAGES[node_name], state="running")
-                        executed_steps.append(f"Executed: {node_name}")
+                    executed_steps.append(f"Started: {node_name}")
 
-                    if "final_response" in output:
-                        final_result = output
+                elif event["type"] == "task_result":
+                    result = dict(event["payload"].get("result", []))
+                    if "final_response" in result:
+                        final_result = result
 
             if final_result is None:
                 status.update(label="🔄 Completing analysis...", state="running")
