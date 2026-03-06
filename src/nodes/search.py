@@ -9,14 +9,16 @@ from graph.state import GraphState
 from utils.config import settings
 from utils.logging import logger
 
-# Initialised once at module load — the HNSW index is loaded into memory here
-# and shared across all requests, instead of being reloaded on every search call.
 _embeddings = OpenAIEmbeddings(model="text-embedding-3-small", api_key=settings.OPENAI_API_KEY)
 _vector_db = Chroma(
     persist_directory=str(settings.INDEX_DIR),
     embedding_function=_embeddings,
     collection_name="sec_filings",
 )
+
+# Warm-up: force the HNSW index to load into memory at startup so the first
+# user query is not penalised by the cold-start delay.
+_vector_db.similarity_search("warmup", k=1)
 
 
 def search_node(state: GraphState):
