@@ -1,6 +1,7 @@
 """S&P 500 company lookup utilities for query analysis."""
 
 import json
+import re
 
 from utils.config import settings
 from utils.logging import logger
@@ -55,9 +56,9 @@ def find_sp500_candidates(query: str) -> list[tuple[str, str]]:
         List of (ticker, company_name) candidates.
     """
     query_words = {
-        word.lower().strip(".,?!'\"")
-        for word in query.split()
-        if len(word) >= 3 and word.lower().strip(".,?!'\"") not in _STOP_WORDS
+        token
+        for token in re.findall(r"[a-z]+", query.lower())
+        if len(token) >= 3 and token not in _STOP_WORDS
     }
 
     seen: set[str] = set()
