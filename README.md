@@ -82,7 +82,7 @@ Raw files are stored in `data/raw/` as `{TICKER}_{section}.txt` and `{TICKER}_me
 
 ### 2. Build the Index
 
-Splits the raw text into chunks and indexes them into ChromaDB with metadata (ticker, section, GICS sector, filing URLs):
+Splits the raw text into chunks and indexes them into ChromaDB with metadata (ticker, section, GICS sector, filing URLs). Also writes `data/index/sp500_companies.json` — a lightweight lookup used for company detection at query time:
 
 ```bash
 python scripts/index.py
@@ -91,6 +91,16 @@ python scripts/index.py
 The vector database (~2.1 GB) is stored in `data/index/`. Progress is displayed per batch.
 
 **Note:** After re-running ingest with a different embedding model, delete `data/index/` before re-indexing to avoid dimension mismatch errors.
+
+### 3. Generate Brand Aliases (optional but recommended)
+
+Generates `data/index/sp500_aliases.json` — a mapping of common brand/product names to tickers (e.g. `"google" → "GOOGL"`, `"facebook" → "META"`). Used by the supervisor to detect companies referred to by informal names:
+
+```bash
+python scripts/generate_sp500_aliases.py
+```
+
+This makes one GPT-4.1 API call per company. Run once after indexing and re-run if the set of indexed companies changes.
 
 
 ## 🎯 How to Run
@@ -130,19 +140,23 @@ graph TD
 
 ### Node Descriptions
 
-- **🧠 Supervisor Node**: Routes the question to the appropriate path:
-  - `SEARCH` — question targets one specific S&P 500 company
-  - `CLARIFY` — question is too vague (no company mentioned)
-  - `REJECT` — question is unrelated to finance or SEC filings
+- **🧠 Supervisor Node**: Routes the question to the appropriate path using a two-step company detection approach:
+  1. Deterministic candidate generation — word-level matching against legal company names and a pre-generated brand alias map (e.g. "google" → GOOGL, "facebook" → META)
+  2. LLM verifier — confirms which candidate (if any) the question is actually about
+
+  Routing decisions are constrained by Pydantic structured output to prevent invalid combinations:
+  - `SEARCH` — question targets one confirmed S&P 500 company
+  - `CLARIFY` — question is too vague, or uses a brand name not matched to any S&P 500 listing
+  - `REJECT` — question is completely unrelated to finance or SEC filings
   - `UNSUPPORTED` — question targets multiple companies, a sector, or a non-S&P 500 entity; responds immediately with a fixed message
 
-- **🏢 Extractor Node**: Extracts the company ticker (e.g. `AAPL`) and the most relevant filing section (`risks`, `business`, `mnda`, or `null`) from the question. These are used as Chroma metadata filters.
+- **🏢 Extractor Node**: Extracts the company ticker (e.g. `AAPL`) and the most relevant filing section (`risks`, `business`, `mnda`, or `null`) from the question. If the supervisor already confirmed a ticker via the verifier, that ticker is used directly to avoid re-extraction errors. These are used as ChromaDB metadata filters.
 
 - **🔍 Search Node**: Performs filtered semantic search against the ChromaDB vector store. Filters by ticker and optionally by section.
 
 - **❓ Clarify Node**: Prompts the user for more specific information when the question is too vague.
 
-- **💬 Reply Node**: Generates the final response using retrieved SEC filing chunks as context, with inline links to the original filings.
+- **💬 Reply Node**: Generates the final response using retrieved SEC filing chunks as context, with inline links to the original filings. Tokens are streamed live into the UI as they arrive.
 
 ### State Management
 
@@ -189,18 +203,22 @@ src/nodes/
 ```
 src/utils/
 ├── config.py              # Pydantic settings (SecretStr for all secrets)
-└── logging.py             # Application logging
+├── logging.py             # Application logging
+└── sp500.py               # S&P 500 candidate detection (name + alias matching)
 ```
 
 ### Data Pipeline
 ```
 scripts/
-├── ingest_sec.py          # Download S&P 500 10-K filings from EDGAR
-└── index.py               # Chunk and index into ChromaDB with progress bar
+├── ingest_sec.py                 # Download S&P 500 10-K filings from EDGAR
+├── index.py                      # Chunk and index into ChromaDB with progress bar
+└── generate_sp500_aliases.py     # Generate brand alias map via LLM (run once after indexing)
 
 data/
-├── raw/                   # SEC filing text files + metadata JSON per ticker
-└── index/                 # ChromaDB vector store (~2.1 GB)
+├── raw/                          # SEC filing text files + metadata JSON per ticker
+└── index/                        # ChromaDB vector store (~2.1 GB)
+                                  # sp500_companies.json — company name lookup
+                                  # sp500_aliases.json   — brand alias map
 ```
 
 ### Project Configuration
@@ -218,9 +236,9 @@ cloudbuild.yaml            # GCP Cloud Build pipeline
 - "How does Apple generate revenue?"
 - "What does Microsoft say about AI in its MD&A?"
 
-**⚠️ Triggers clarification (no company mentioned):**
-- "What are the main risks?"
-- "How do companies discuss competition?"
+**⚠️ Triggers clarification (vague or unknown company):**
+- "What are the main risks?" → no company mentioned
+- "What are Starlink's risks?" → not an S&P 500 company
 
 **🚫 Unsupported (multiple companies or non-S&P 500):**
 - "Compare Apple and Microsoft" → multi-company not yet supported
@@ -231,8 +249,11 @@ cloudbuild.yaml            # GCP Cloud Build pipeline
 
 ## 🔧 Technical Details
 
-- **Vector Search**: OpenAI `text-embedding-3-small` embeddings with ChromaDB, filtered by ticker and section
-- **LLM Models**: GPT-4.1-nano for supervisor/extractor/reply, GPT-4.1-mini for clarification
+- **Vector Search**: OpenAI `text-embedding-3-small` embeddings with ChromaDB, top-10 results filtered by ticker and section
+- **Company Detection**: Two-stage — deterministic word/alias matching generates candidates, LLM verifier confirms; Pydantic structured output constrains routing decisions
+- **Brand Aliases**: LLM-generated `sp500_aliases.json` maps informal names to tickers (e.g. "google" → GOOGL, "facebook" → META)
+- **Streaming**: Reply tokens streamed live via LangGraph `stream_mode=["debug", "messages"]`
+- **LLM Models**: GPT-4.1-nano for supervisor/extractor/reply, GPT-4.1-mini for clarification, GPT-4.1 for alias generation
 - **Coverage**: Latest 10-K filings for S&P 500 companies (business, risk factors, MD&A sections)
 - **Security**: bcrypt password hashing, Pydantic `SecretStr` for all secrets, `.env` excluded from git
 - **Framework**: LangGraph for orchestration, Streamlit for UI
