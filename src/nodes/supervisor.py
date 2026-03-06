@@ -33,7 +33,7 @@ class _SingleCompanyDecision(BaseModel):
 class _NoCompanyDecision(BaseModel):
     """Used when no S&P 500 company is detected."""
 
-    next_step: Literal["CLARIFY", "REJECT", "UNSUPPORTED"]
+    next_step: Literal["SEARCH", "CLARIFY", "REJECT", "UNSUPPORTED"]
 
 
 class _VerifierDecision(BaseModel):
