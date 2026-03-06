@@ -113,4 +113,7 @@ def supervisor_node(state: GraphState) -> dict:
     if decision == "UNSUPPORTED":
         return {"next_step": "UNSUPPORTED", "final_response": _UNSUPPORTED_MESSAGE}
 
+    if match_count == 1 and decision == "SEARCH":
+        return {"next_step": decision, "ticker": matched_tickers[0]}
+
     return {"next_step": decision}

@@ -46,7 +46,9 @@ def extractor_node(state: GraphState):
     """
 
     response = structured_llm.invoke([SystemMessage(content=prompt)])
-    ticker = response.ticker  # type: ignore[union-attr]
+    # Use ticker already set in state (by supervisor's company detection) if available,
+    # so a small LLM cannot overwrite a known-correct ticker with a wrong value.
+    ticker = state.get("ticker") or response.ticker  # type: ignore[union-attr]
     section = response.section  # type: ignore[union-attr]
 
     logger.info("Extracted ticker: %s | section: %s", ticker, section)
