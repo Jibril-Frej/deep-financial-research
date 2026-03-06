@@ -150,20 +150,26 @@ def supervisor_node(state: GraphState) -> dict:
 
         No specific S&P 500 company was confirmed in the question. Choose between:
 
-        1. SEARCH      — the question is about a specific company that may have been missed
-                         by automated detection (e.g. a typo or uncommon reference). Try to search.
+        1. REJECT      — the question has absolutely nothing to do with finance, business, or
+                         SEC filings. Use this ONLY for completely off-topic questions.
+                         Example: "What is the weather today?", "Who won the football match?"
 
-        2. REJECT      — the question has nothing to do with finance, business, or SEC filings.
-                         Example: "What is the weather today?"
-
-        3. UNSUPPORTED — the question is finance-related but refers to a non-S&P 500 entity
-                         (private company, university, government body, non-US company, or a
-                         sector/industry as a whole).
+        2. UNSUPPORTED — the question is finance-related but refers to an entity that is clearly
+                         NOT an S&P 500 company: a private company, university, government body,
+                         non-US company, or a sector/industry as a whole.
                          Examples: "Harvard University risks", "how do tech companies discuss AI?"
 
-        4. CLARIFY     — the question is about finance/business but does not mention any specific
-                         company (too vague to search).
-                         Example: "What are the main risks?" (no company mentioned)
+        3. CLARIFY     — the question is finance-related AND mentions a company name, but that
+                         name was not matched to an S&P 500 listing. This includes popular brand
+                         names that differ from the legal company name (e.g. "Google" instead of
+                         "Alphabet", "Facebook" instead of "Meta Platforms"). Ask the user to
+                         clarify or confirm the correct company name.
+                         Also use this when the question is too vague with no company mentioned.
+                         Examples: "What is Google's net income?", "What are the main risks?"
+
+        4. SEARCH      — the question is about a specific company that may have been missed
+                         by automated detection (e.g. a minor typo). Try to search.
+                         Example: "What are Alphabbet's risks?" (typo for Alphabet)
         """
         response = _no_company_llm.invoke([SystemMessage(content=prompt)])
 
