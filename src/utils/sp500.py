@@ -2,6 +2,7 @@
 
 import json
 import re
+from difflib import get_close_matches
 
 from utils.config import settings
 from utils.logging import logger
@@ -39,13 +40,27 @@ def _load_aliases() -> dict[str, str]:
 _SP500_LOOKUP: dict[str, dict] = _load_lookup()
 _SP500_ALIASES: dict[str, str] = _load_aliases()
 
+# Reverse index: significant words from company names → [(ticker, company_name)]
+# Built once at module load for efficient fuzzy matching.
+_NAME_WORD_TO_COMPANIES: dict[str, list[tuple[str, str]]] = {}
+for _ticker, _info in _SP500_LOOKUP.items():
+    _company_name = _info.get("company_name", "")
+    if not _company_name:
+        continue
+    for _word in re.findall(r"[a-z]+", _company_name.lower()):
+        if len(_word) >= 3 and _word not in _STOP_WORDS:
+            _NAME_WORD_TO_COMPANIES.setdefault(_word, []).append((_ticker, _company_name))
+
+_NAME_WORD_LIST: list[str] = list(_NAME_WORD_TO_COMPANIES.keys())
+
 
 def find_sp500_candidates(query: str) -> list[tuple[str, str]]:
     """Returns (ticker, company_name) pairs where a significant query word appears in the name.
 
-    Uses two matching strategies, merged and deduplicated:
+    Uses three matching strategies, merged and deduplicated:
     1. Word-level matching against legal company names in sp500_companies.json.
     2. Direct alias lookup against sp500_aliases.json (e.g. "google" → GOOGL).
+    3. Fuzzy matching (difflib, cutoff=0.82) against company name words to catch typos.
 
     May return false positives — callers should verify with an LLM before acting on the result.
 
@@ -80,5 +95,14 @@ def find_sp500_candidates(query: str) -> list[tuple[str, str]]:
             company_name = _SP500_LOOKUP.get(ticker, {}).get("company_name", ticker)
             seen.add(ticker)
             candidates.append((ticker, company_name))
+
+    # Strategy 3: fuzzy match query words against significant words in company names
+    for word in query_words:
+        matches = get_close_matches(word, _NAME_WORD_LIST, n=1, cutoff=0.82)
+        for match in matches:
+            for ticker, company_name in _NAME_WORD_TO_COMPANIES[match]:
+                if ticker not in seen:
+                    seen.add(ticker)
+                    candidates.append((ticker, company_name))
 
     return candidates
