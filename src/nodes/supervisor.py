@@ -24,15 +24,22 @@ _UNSUPPORTED_MESSAGE = (
 )
 
 
-class SupervisorDecision(BaseModel):
-    """Defines the structure of the supervisor's decision."""
+class _SingleCompanyDecision(BaseModel):
+    """Used when exactly one S&P 500 company is detected. UNSUPPORTED is structurally excluded."""
 
-    next_step: Literal["CLARIFY", "SEARCH", "REJECT", "UNSUPPORTED"]
+    next_step: Literal["SEARCH", "CLARIFY", "REJECT"]
+
+
+class _NoCompanyDecision(BaseModel):
+    """Used when no S&P 500 company is detected."""
+
+    next_step: Literal["CLARIFY", "REJECT", "UNSUPPORTED"]
 
 
 # Initialize the LLM
-llm = ChatOpenAI(model="gpt-4.1-nano", api_key=settings.OPENAI_API_KEY)
-structured_llm = llm.with_structured_output(SupervisorDecision, method="json_schema")
+_llm = ChatOpenAI(model="gpt-4.1-nano", api_key=settings.OPENAI_API_KEY)
+_single_company_llm = _llm.with_structured_output(_SingleCompanyDecision, method="json_schema")
+_no_company_llm = _llm.with_structured_output(_NoCompanyDecision, method="json_schema")
 
 
 def supervisor_node(state: GraphState) -> dict:
@@ -40,7 +47,7 @@ def supervisor_node(state: GraphState) -> dict:
 
     Company detection via find_sp500_mentions() constrains the LLM's allowed decisions:
     - 2+ companies → UNSUPPORTED immediately (no LLM call)
-    - 1 company    → LLM chooses between SEARCH or CLARIFY
+    - 1 company    → LLM chooses between SEARCH, CLARIFY, or REJECT (UNSUPPORTED excluded)
     - 0 companies  → LLM chooses between CLARIFY, REJECT, or UNSUPPORTED
 
     Returns:
@@ -59,19 +66,26 @@ def supervisor_node(state: GraphState) -> dict:
         return {"next_step": "UNSUPPORTED", "final_response": _UNSUPPORTED_MESSAGE}
 
     if match_count == 1:
+        ticker = matched_tickers[0]
         prompt = f"""
         You are a financial research assistant routing user questions about SEC filings.
         Analyze the question: "{question}"
 
-        The question mentions exactly one S&P 500 company. Choose between:
+        The question contains the name of an S&P 500 company (ticker: {ticker}).
+        Decide how to handle it:
 
-        1. SEARCH  — the question is clear enough to search (asks about financials, risks,
-                     business, or strategy of the identified company).
+        1. SEARCH  — the question asks about the company's financials, risks, business strategy,
+                     or other SEC filing content. Go ahead and search.
                      Example: "What are Airbnb's main risk factors?"
 
         2. CLARIFY — the question mentions the company but is too vague to search meaningfully.
                      Example: "Tell me about Airbnb" (no specific financial topic)
+
+        3. REJECT  — the question mentions the company but has nothing to do with its financials
+                     or SEC filings.
+                     Example: "Where is the closest Airbnb apartment?"
         """
+        response = _single_company_llm.invoke([SystemMessage(content=prompt)])
     else:
         prompt = f"""
         You are a financial research assistant routing user questions about SEC filings.
@@ -91,10 +105,9 @@ def supervisor_node(state: GraphState) -> dict:
                          company (too vague to search).
                          Example: "What are the main risks?" (no company mentioned)
         """
+        response = _no_company_llm.invoke([SystemMessage(content=prompt)])
 
-    response = structured_llm.invoke([SystemMessage(content=prompt)])
     decision = response.next_step  # type: ignore[union-attr]
-
     logger.info("Supervisor decision: %s", decision)
 
     if decision == "UNSUPPORTED":
