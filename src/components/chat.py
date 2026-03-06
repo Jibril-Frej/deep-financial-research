@@ -1,10 +1,13 @@
 """Chat interface component."""
 
 import traceback
+from typing import cast
 
 import streamlit as st
+from langchain_core.messages import BaseMessageChunk
 
 from graph.blueprint import app
+from graph.state import GraphState
 from services.rate_limit import check_rate_limit
 from utils.logging import logger
 
@@ -49,44 +52,53 @@ def _handle_input():
         st.rerun()
 
 
-def _run_graph(prompt: str) -> str | None:
-    """Execute the LangGraph pipeline and return the final response."""
-    executed_steps = []
+def _run_graph(prompt: str, reply_placeholder) -> str | None:
+    """Execute the LangGraph pipeline, streaming reply tokens into reply_placeholder.
+
+    Args:
+        prompt: The user's question.
+        reply_placeholder: A Streamlit empty() element in the assistant chat bubble
+            where reply tokens are streamed as they arrive.
+
+    Returns:
+        The final (cleaned) response string, or None on error.
+    """
+    streamed_reply = ""
+    final_result = None
 
     with st.status("🤔 Analyzing your question...", expanded=False) as status:
         try:
-            inputs = {"question": prompt}
-            final_result = None
-            executed_steps.append("Started analysis")
+            inputs = cast(GraphState, {"question": prompt})
 
-            for event in app.stream(inputs, stream_mode="debug"):
-                if event["type"] == "task":
-                    node_name = event["payload"]["name"]
-                    if node_name in STATUS_MESSAGES:
-                        status.update(label=STATUS_MESSAGES[node_name], state="running")
-                    executed_steps.append(f"Started: {node_name}")
+            for event_type, data in app.stream(inputs, stream_mode=["debug", "messages"]):
+                if event_type == "debug":
+                    event = cast(dict, data)
+                    if event["type"] == "task":
+                        node_name = event["payload"]["name"]
+                        if node_name in STATUS_MESSAGES:
+                            status.update(label=STATUS_MESSAGES[node_name], state="running")
 
-                elif event["type"] == "task_result":
-                    result = dict(event["payload"].get("result", []))
-                    if "final_response" in result:
-                        final_result = result
+                    elif event["type"] == "task_result":
+                        result = dict(event["payload"].get("result", []))
+                        if "final_response" in result:
+                            final_result = result
 
-            if final_result is None:
-                status.update(label="🔄 Completing analysis...", state="running")
-                final_result = app.invoke(inputs)
-                executed_steps.append("Completed fallback processing")
+                elif event_type == "messages":
+                    chunk, metadata = cast(tuple[BaseMessageChunk, dict], data)
+                    if (
+                        metadata.get("langgraph_node") == "reply"
+                        and isinstance(chunk.content, str)
+                        and chunk.content
+                    ):
+                        streamed_reply += chunk.content
+                        reply_placeholder.markdown(streamed_reply + "▌")
 
             status.update(label="✅ Analysis complete", state="complete")
-            executed_steps.append("Analysis finished successfully")
-
-            st.write("**Execution Steps:**")
-            for step in executed_steps:
-                st.write(f"- {step}")
 
         except Exception as e:
             status.update(label="Error occurred", state="error")
             st.error(f"An error occurred: {e}")
-            logger.error(f"App Error: {e}")
+            logger.error("App Error: %s", e)
             logger.error(traceback.format_exc())
             final_result = None
 
@@ -95,7 +107,7 @@ def _run_graph(prompt: str) -> str | None:
 
     if final_result:
         return final_result.get("final_response", "I'm sorry, I couldn't process that.")
-    return None
+    return streamed_reply or None
 
 
 def _process_pending_prompt():
@@ -110,11 +122,13 @@ def _process_pending_prompt():
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    answer = _run_graph(prompt)
+    with st.chat_message("assistant"):
+        reply_placeholder = st.empty()
+
+    answer = _run_graph(prompt, reply_placeholder)
 
     if answer:
-        with st.chat_message("assistant"):
-            st.markdown(answer)
+        reply_placeholder.markdown(answer)
         st.session_state.messages.append({"role": "assistant", "content": answer})
 
     st.rerun()
