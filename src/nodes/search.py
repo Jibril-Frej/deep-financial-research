@@ -49,7 +49,7 @@ def search_node(state: GraphState):
     # Perform filtered vector search (top 5 most similar chunks)
     docs = _vector_db.similarity_search(
         query=state["question"],
-        k=5,
+        k=10,
         filter=where,
     )
 
