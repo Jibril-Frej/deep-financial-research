@@ -3,6 +3,7 @@ Indexing script for SEC filings using LangChain and ChromaDB.
 """
 
 import json
+import shutil
 
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import Chroma
@@ -43,6 +44,20 @@ def run_indexing():
     2. Splits them into chunks with metadata including URLs when available
     3. Indexes them into ChromaDB for retrieval
     """
+    # 0. Wipe ChromaDB files so re-runs never accumulate duplicate chunks.
+    # delete_collection() only removes the catalog entry — HNSW segment directories
+    # remain on disk as orphans. Instead, delete the SQLite file and all UUID segment
+    # directories directly, while preserving JSON files (sp500_*.json).
+    index_dir = settings.INDEX_DIR
+    sqlite_file = index_dir / "chroma.sqlite3"
+    if sqlite_file.exists():
+        sqlite_file.unlink()
+        logger.info("Deleted chroma.sqlite3")
+    for entry in index_dir.iterdir():
+        if entry.is_dir():
+            shutil.rmtree(entry)
+            logger.info("Deleted segment directory %s", entry.name)
+
     # 1. Initialize Embeddings
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small", api_key=settings.OPENAI_API_KEY)
 
